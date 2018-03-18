@@ -108,9 +108,9 @@ n = 15  # figure with 15x15 digits
 digit_size = 28
 figure = np.zeros((digit_size * n, digit_size * n))
 
-output_digit = 9
+output_digit = 9 # 指定输出数字
 
-#用正态分布的分位数来构建隐变量对
+# 用正态分布的分位数来构建隐变量对
 grid_x = norm.ppf(np.linspace(0.05, 0.95, n)) + mu[output_digit][1]
 grid_y = norm.ppf(np.linspace(0.05, 0.95, n)) + mu[output_digit][0]
 
