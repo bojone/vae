@@ -50,7 +50,7 @@ def sampling(args):
                               stddev=epsilon_std)
     return z_mean + K.exp(z_log_var / 2) * epsilon
 
-# 重参数层，相当于给输入加入早生
+# 重参数层，相当于给输入加入噪声
 z = Lambda(sampling, output_shape=(latent_dim,))([z_mean, z_log_var])
 
 # 解码层，也就是生成器部分
@@ -84,7 +84,7 @@ encoder = Model(x, z_mean)
 
 x_test_encoded = encoder.predict(x_test, batch_size=batch_size)
 plt.figure(figsize=(6, 6))
-plt.scatter(x_test_encoded[:, 0], x_test_encoded[:, 1], c=y_test)
+plt.scatter(x_test_encoded[:, 0], x_test_encoded[:, 1], c=y_test_)
 plt.colorbar()
 plt.show()
 
