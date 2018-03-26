@@ -124,7 +124,7 @@ class Evaluate(Callback):
         self.log = []
     def on_epoch_end(self, epoch, logs=None):
         self.log.append(gen())
-        print '          %s'%(self.log[-1])
+        print u'          %s'%(self.log[-1])
 
 
 evaluator = Evaluate()
