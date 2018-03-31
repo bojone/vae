@@ -1,3 +1,5 @@
+#! -*- coding: utf-8 -*-
+
 '''用Keras实现的VAE
    目前只保证支持Tensorflow后端
 
