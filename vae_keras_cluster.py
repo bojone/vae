@@ -35,9 +35,15 @@ for i in range(2):
     filters *= 2
     h = Conv2D(filters=filters,
                kernel_size=3,
-               activation='relu',
                strides=2,
                padding='same')(h)
+    h = LeakyReLU(0.2)(h)
+    h = Conv2D(filters=filters,
+               kernel_size=3,
+               strides=1,
+               padding='same')(h)
+    h = LeakyReLU(0.2)(h)
+
 
 h_shape = K.int_shape(h)[1:]
 h = Flatten()(h)
@@ -55,9 +61,14 @@ h = Reshape(h_shape)(h)
 for i in range(2):
     h = Conv2DTranspose(filters=filters,
                         kernel_size=3,
-                        activation='relu',
+                        strides=1,
+                        padding='same')(h)
+    h = LeakyReLU(0.2)(h)
+    h = Conv2DTranspose(filters=filters,
+                        kernel_size=3,
                         strides=2,
                         padding='same')(h)
+    h = LeakyReLU(0.2)(h)
     filters //= 2
 
 x_recon = Conv2DTranspose(filters=1,
