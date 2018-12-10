@@ -101,8 +101,8 @@ y = classfier(z)
 
 
 class Gaussian(Layer):
-    """这是个简单的层，只为定义q(z|y)中的均值参数，每个类别配一个均值。
-    输出也只是把这些均值输出，为后面计算loss准备，本身没有任何运算。
+    """这是个简单的层，定义q(z|y)中的均值参数，每个类别配一个均值。
+    然后输出“z - 均值”，为后面计算loss准备。
     """
     def __init__(self, num_classes, **kwargs):
         self.num_classes = num_classes
@@ -115,7 +115,7 @@ class Gaussian(Layer):
     def call(self, inputs):
         z = inputs # z.shape=(batch_size, latent_dim)
         z = K.expand_dims(z, 1)
-        return z * 0 + K.expand_dims(self.mean, 0)
+        return z - K.expand_dims(self.mean, 0)
     def compute_output_shape(self, input_shape):
         return (None, self.num_classes, input_shape[-1])
 
@@ -130,9 +130,9 @@ vae = Model(x, [x_recon, z_prior_mean, y])
 z_mean = K.expand_dims(z_mean, 1)
 z_log_var = K.expand_dims(z_log_var, 1)
 
-lamb = 5 # 这是重构误差的权重，它的相反数就是重构方差，越大意味着方差越小。
+lamb = 2.5 # 这是重构误差的权重，它的相反数就是重构方差，越大意味着方差越小。
 xent_loss = 0.5 * K.mean((x - x_recon)**2, 0)
-kl_loss = - 0.5 * (1 + z_log_var - K.square(z_mean - z_prior_mean) - K.exp(z_log_var))
+kl_loss = - 0.5 * (z_log_var - K.square(z_prior_mean))
 kl_loss = K.mean(K.batch_dot(K.expand_dims(y, 1), kl_loss), 0)
 cat_loss = K.mean(y * K.log(y + K.epsilon()), 0)
 vae_loss = lamb * K.sum(xent_loss) + K.sum(kl_loss) + K.sum(cat_loss)
@@ -143,7 +143,7 @@ vae.compile(optimizer='adam')
 vae.summary()
 
 
-vae.fit(x_train, 
+vae.fit(x_train,
         shuffle=True,
         epochs=epochs,
         batch_size=batch_size,
