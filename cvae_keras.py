@@ -17,9 +17,9 @@ from scipy.stats import norm
 from keras.layers import Input, Dense, Lambda
 from keras.models import Model
 from keras import backend as K
-from keras import metrics
 from keras.datasets import mnist
 from keras.utils import to_categorical
+
 
 batch_size = 100
 original_dim = 784
@@ -69,7 +69,7 @@ x_decoded_mean = decoder_mean(h_decoded)
 vae = Model([x, y], [x_decoded_mean, yh])
 
 # xent_loss是重构loss，kl_loss是KL loss
-xent_loss = original_dim * metrics.binary_crossentropy(x, x_decoded_mean)
+xent_loss = K.sum(K.binary_crossentropy(x, x_decoded_mean), axis=-1)
 
 # 只需要修改K.square(z_mean)为K.square(z_mean - yh)，也就是让隐变量向类内均值看齐
 kl_loss = - 0.5 * K.sum(1 + z_log_var - K.square(z_mean - yh) - K.exp(z_log_var), axis=-1)
