@@ -88,7 +88,7 @@ outputs = Conv2DTranspose(filters=1,
                           padding='same')(x)
 
 # 搭建为一个独立的模型
-decoder = Model(latent_inputs, outputs, name='decoder')
+decoder = Model(latent_inputs, outputs)
 
 x_out = decoder(z)
 
