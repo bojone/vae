@@ -20,12 +20,6 @@ from keras import backend as K
 from keras.datasets import mnist
 
 
-batch_size = 100
-latent_dim = 2 # 隐变量取2维只是为了方便后面画图
-intermediate_dim = 256
-epochs = 50
-
-
 # 加载MNIST数据集
 (x_train, y_train_), (x_test, y_test_) = mnist.load_data()
 
@@ -38,11 +32,12 @@ x_test = x_test.astype('float32') / 255
 
 # 网络参数
 input_shape = (image_size, image_size, 1)
-batch_size = 128
+batch_size = 100
 kernel_size = 3
 filters = 16
-latent_dim = 2
+latent_dim = 2 # 隐变量取2维只是为了方便后面画图
 epochs = 30
+
 
 x_in = Input(shape=input_shape)
 x = x_in
