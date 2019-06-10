@@ -18,7 +18,7 @@ from keras.models import Model
 from keras import backend as K
 from keras import metrics
 from keras.datasets import mnist
-from keras.utils import to_categorical
+
 
 batch_size = 100
 original_dim = 784
@@ -34,8 +34,6 @@ x_train = x_train.astype('float32') / 255.
 x_test = x_test.astype('float32') / 255.
 x_train = x_train.reshape((len(x_train), np.prod(x_train.shape[1:])))
 x_test = x_test.reshape((len(x_test), np.prod(x_test.shape[1:])))
-y_train = to_categorical(y_train_, num_classes)
-y_test = to_categorical(y_test_, num_classes)
 
 
 x = Input(shape=(original_dim,))
