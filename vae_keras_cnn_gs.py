@@ -3,8 +3,8 @@
 '''用Keras实现的VAE，CNN版本
    使用了离散隐变量，为此使用了Gumbel Softmax做重参数。
    目前只保证支持Tensorflow后端
- #来自
-  https://github.com/keras-team/keras/blob/master/examples/variational_autoencoder_deconv.py
+   改写自
+   https://github.com/keras-team/keras/blob/master/examples/variational_autoencoder_deconv.py
 '''
 
 from __future__ import print_function
