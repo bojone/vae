@@ -2,9 +2,8 @@
 
 '''用Keras实现的VAE
    目前只保证支持Tensorflow后端
-
- #来自
-  https://github.com/keras-team/keras/blob/master/examples/variational_autoencoder.py
+   改写自
+   https://github.com/keras-team/keras/blob/master/examples/variational_autoencoder.py
 '''
 
 from __future__ import print_function
