@@ -257,3 +257,192 @@ if __name__ == '__main__':
                               epochs=1000,
                               callbacks=[trainer])
 
+
+"""
+train_model.load_weights('./train_model.weights')
+
+
+e_model_size = K.int_shape(e_model.outputs[0])[1: -1]
+e_model_total_size = np.prod(e_model_size)
+
+
+from tqdm import tqdm
+
+train_D = img_generator(imgs)
+train__D = train_D.__iter__()
+train_codes = np.empty((0, e_model_total_size), dtype='int32')
+for _ in tqdm(iter(range(len(train_D)))):
+    d = train__D.next()[0]
+    c = q_model.predict(e_model.predict(d))[0]
+    c = c.reshape((c.shape[0], -1))
+    train_codes = np.vstack([train_codes, c])
+
+
+train_codes = np.hstack([
+    np.zeros_like(train_codes[:, :1], dtype='int32'),
+    train_codes + 1
+])
+
+
+class OurLayer(Layer):
+    """定义新的Layer，增加reuse方法，允许在定义Layer时调用现成的层
+    """
+    def reuse(self, layer, *args, **kwargs):
+        if not layer.built:
+            if len(args) > 0:
+                layer.build(K.int_shape(args[0]))
+            else:
+                layer.build(K.int_shape(kwargs['inputs']))
+            self._trainable_weights.extend(layer._trainable_weights)
+            self._non_trainable_weights.extend(layer._non_trainable_weights)
+        return layer.call(*args, **kwargs)
+
+
+class Attention(OurLayer):
+    """多头注意力机制
+    """
+    def __init__(self, heads, size_per_head, key_size=None,
+                 mask_right=False, **kwargs):
+        super(Attention, self).__init__(**kwargs)
+        self.heads = heads
+        self.size_per_head = size_per_head
+        self.out_dim = heads * size_per_head
+        self.key_size = key_size if key_size else size_per_head
+        self.mask_right = mask_right
+    def build(self, input_shape):
+        super(Attention, self).build(input_shape)
+        self.q_dense = Dense(self.key_size * self.heads, use_bias=False)
+        self.k_dense = Dense(self.key_size * self.heads, use_bias=False)
+        self.v_dense = Dense(self.out_dim, use_bias=False)
+    def mask(self, x, mask, mode='mul'):
+        if mask is None:
+            return x
+        else:
+            for _ in range(K.ndim(x) - K.ndim(mask)):
+                mask = K.expand_dims(mask, K.ndim(mask))
+            if mode == 'mul':
+                return x * mask
+            else:
+                return x - (1 - mask) * 1e10
+    def call(self, inputs):
+        q, k, v = inputs[:3]
+        v_mask, q_mask = None, None
+        if len(inputs) > 3:
+            v_mask = inputs[3]
+            if len(inputs) > 4:
+                q_mask = inputs[4]
+        # 线性变换
+        qw = self.reuse(self.q_dense, q)
+        kw = self.reuse(self.k_dense, k)
+        vw = self.reuse(self.v_dense, v)
+        # 形状变换
+        qw = K.reshape(qw, (-1, K.shape(qw)[1], self.heads, self.key_size))
+        kw = K.reshape(kw, (-1, K.shape(kw)[1], self.heads, self.key_size))
+        vw = K.reshape(vw, (-1, K.shape(vw)[1], self.heads, self.size_per_head))
+        # 维度置换
+        qw = K.permute_dimensions(qw, (0, 2, 1, 3))
+        kw = K.permute_dimensions(kw, (0, 2, 1, 3))
+        vw = K.permute_dimensions(vw, (0, 2, 1, 3))
+        # Attention
+        a = K.batch_dot(qw, kw, [3, 3]) / self.key_size**0.5
+        a = K.permute_dimensions(a, (0, 3, 2, 1))
+        a = self.mask(a, v_mask, 'add')
+        a = K.permute_dimensions(a, (0, 3, 2, 1))
+        if self.mask_right:
+            ones = K.ones_like(a[:1, :1])
+            mask = (ones - K.tf.matrix_band_part(ones, -1, 0)) * 1e10
+            a = a - mask
+        a = K.softmax(a)
+        # 完成输出
+        o = K.batch_dot(a, vw, [3, 2])
+        o = K.permute_dimensions(o, (0, 2, 1, 3))
+        o = K.reshape(o, (-1, K.shape(o)[1], self.out_dim))
+        o = self.mask(o, q_mask, 'mul')
+        return o
+    def compute_output_shape(self, input_shape):
+        return (input_shape[0][0], input_shape[0][1], self.out_dim)
+
+
+from keras_layer_normalization import LayerNormalization
+
+
+c_in = Input(shape=(None,))
+c = c_in
+
+def posid(x):
+    idx = K.arange(0, K.shape(x)[1])
+    idx = K.expand_dims(idx, 0)
+    idx = K.tile(idx, [K.shape(x)[0], 1])
+    return idx
+
+c_pid = Lambda(posid)(c)
+c_row_pid = Lambda(lambda x: x // e_model_size[0])(c_pid)
+c_col_pid = Lambda(lambda x: x % e_model_size[1])(c_pid)
+
+
+def build_att(c):
+    co = c
+    c = Attention(8, 32, mask_right=True)([c, c, c])
+    c = Dense(z_dim * 2, activation='relu')(c)
+    return Add()([c, co])
+
+c = Embedding(num_codes + 1, z_dim * 2)(c)
+c_row_p = Embedding(e_model_size[0], z_dim * 2)(c_row_pid)
+c_col_p = Embedding(e_model_size[1], z_dim * 2)(c_col_pid)
+c = Add()([c, c_row_p, c_col_p])
+c = LayerNormalization()(c)
+c = build_att(c)
+c = LayerNormalization()(c)
+c = build_att(c)
+c = LayerNormalization()(c)
+c = build_att(c)
+c = LayerNormalization()(c)
+c = build_att(c)
+c = LayerNormalization()(c)
+c = Dense(num_codes, activation='softmax')(c)
+
+c_model = Model(c_in, c)
+c_model.summary()
+c_model.compile(
+    loss='sparse_categorical_crossentropy',
+    optimizer='adam'
+)
+c_model.fit(
+    train_codes[:, :-1],
+    np.expand_dims(train_codes[:, 1:] - 1, 2),
+    batch_size=32,
+    epochs=1000
+)
+
+
+def random_sample_code(n=1):
+    c_sample = np.zeros((n, e_model_total_size + 1), dtype='int32')
+    for i in tqdm(iter(range(e_model_total_size))):
+        p = c_model.predict(c_sample[:, :i+1])[:, -1]
+        for j in range(n):
+            k = np.random.choice(num_codes, p=p[j])
+            c_sample[j, i+1] = k + 1
+    return c_sample[:, 1:].reshape((-1, e_model_size[0], e_model_size[1])) - 1
+
+
+def code2vec(codes):
+    vecs = K.gather(vq_layer.embeddings, codes)
+    return K.eval(vecs)
+
+
+# 随机采样
+def sample(path, n=8):
+    figure = np.zeros((img_dim * n, img_dim * n, 3))
+    codes = random_sample_code(n**2)
+    for i in range(n):
+        for j in range(n):
+            z_sample = code2vec(codes[[i * n + j]])
+            z_sample = q_model.predict(z_sample)[1]
+            x_sample = g_model.predict(z_sample)
+            digit = x_sample[0]
+            figure[i * img_dim:(i + 1) * img_dim,
+                   j * img_dim:(j + 1) * img_dim] = digit
+    figure = (figure + 1) / 2 * 255
+    figure = np.round(figure, 0).astype('uint8')
+    imageio.imwrite(path, figure)
+"""
