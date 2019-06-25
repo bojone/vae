@@ -131,7 +131,7 @@ class VectorQuantizer(Layer):
         """
         l2_inputs = K.sum(inputs**2, -1, keepdims=True)
         l2_embeddings = K.sum(self.embeddings**2, -1)
-        for _ in range(3):
+        for _ in range(K.ndim(inputs) - 1):
             l2_embeddings = K.expand_dims(l2_embeddings, 0)
         embeddings = K.transpose(self.embeddings)
         dot = K.dot(inputs, embeddings)
