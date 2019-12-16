@@ -14,5 +14,8 @@ https://kexue.fm/archives/5253
 
 https://kexue.fm/archives/5887
 
+## 实验环境
+python 2.7 + tensorflow 1.8/1.13 + keras 2.2.4
+
 ## 交流
 QQ交流群：67729435，微信群请加机器人微信号spaces_ac_cn
