@@ -11,7 +11,7 @@ from keras.datasets import mnist
 # 基本参数
 batch_size = 100
 original_dim = 784
-latent_dim = 8
+latent_dim = 4
 intermediate_dim = 256
 epochs = 50
 kappa = 20
