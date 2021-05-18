@@ -29,7 +29,7 @@ h = Dense(intermediate_dim, activation='relu')(x)
 
 # 参数mu
 mu = Dense(latent_dim)(h)
-mu = Lambda(K.l2_normalize)(mu)
+mu = Lambda(lambda x: K.l2_normalize(x, axis=-1))(mu)
 
 
 def sampling(mu):
@@ -49,7 +49,7 @@ def sampling(mu):
     # 实时采样z
     eps = K.random_normal(K.shape(mu))
     nu = eps - K.sum(eps * mu, axis=1, keepdims=True) * mu
-    nu = K.l2_normalize(nu)
+    nu = K.l2_normalize(nu, axis=-1)
     return w * mu + (1 - w**2)**0.5 * nu
 
 
